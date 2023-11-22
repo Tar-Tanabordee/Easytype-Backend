@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int    @id @default(autoincrement())
+  firstName String
+  lastName  String
+
+  role         Role            @default(user)
+  email        String          @unique
+  password     String
+  phone        String          @unique
+  address      Address[]
+  shoppingCart ShoppingCarts[]
+  order        Order[]
+}
+
+enum Role {
+  admin
+  user
+}
+
+model Product {
+  id           Int             @id @default(autoincrement())
+  productImage String          @map("product_image")
+  productName  String          @map("product_name")
+  size         Size            @map("size")
+  price        Decimal         @db.Decimal(10, 2)
+  description  String
+  shoppingCart ShoppingCarts[]
+  orderItem    OrderItem[]
+}
+
+enum Size {
+  small
+  medium
+  large
+}
+
+model Address {
+  id          Int    @id @default(autoincrement())
+  addressInfo String @map("address")
+  subDistrict String @map("sub_district")
+  district    String
+  province    String
+  postcode    String
+  userId      Int
+  user        User   @relation(fields: [userId], references: [id])
+}
+
+model ShoppingCarts {
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  amount    Int
+
+  @@map("Shopping_carts")
+}
+
+model OrderItem {
+  id         Int     @id @default(autoincrement())
+  amount     Int
+  totalPrice Decimal @map("total_price") @db.Decimal(10, 2)
+  productId  Int
+  product    Product @relation(fields: [productId], references: [id])
+  orderId    Int
+  order      Order   @relation(fields: [orderId], references: [id])
+
+  @@map("Order_item")
+}
+
+model Order {
+  id          Int          @id @default(autoincrement())
+  sumPrice    Decimal      @db.Decimal(10, 2)
+  createdAt   DateTime     @default(now())
+  status      orderStatus  @default(pending)
+  userId      Int
+  user        User         @relation(fields: [userId], references: [id])
+  orderItem   OrderItem[]
+  transaction Transaction?
+}
+
+enum orderStatus {
+  pending
+  shipping
+  completed
+  cancel
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  slip      String?
+  payment   payment  @default(pending)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orderId   Int      @unique
+  order     Order    @relation(fields: [orderId], references: [id])
+}
+
+enum payment {
+  pending
+  paid
+}
